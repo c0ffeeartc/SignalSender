@@ -21,9 +21,10 @@ namespace sig
 //              See for pitfalls:
 //                  http://stackoverflow.com/questions/14585385/best-practice-how-to-get-a-unique-identifier-for-the-object
 //
-// Exposes CONNECT, DISCONNECT, SIGNAL macros for convenience
-//      if previously called CONNECT
-//          DISCONNECT *must* be called
+//
+// May be used
+//      through singleton CONNECT, DISCONNECT, SIGNAL macros
+//      or through manually constructed objects
 //
 
 template <typename Event>
@@ -54,16 +55,22 @@ public:
         std::vector<ConnectionPair>
             Connections;
 
-    SignalSender(size_t reserveAmt)
+
+        SignalSender
+            (size_t reserveAmt)
+                : _reserveAmt(reserveAmt)
+                , _reserveTimes(1)
     {
-        connections.reserve(reserveAmt);
+        connections.reserve(_reserveAmt);
     }
+
 
     template<typename Subscriber>
     void
         connect
             (Connection&& connection, size_t objId)
     {
+        preReserve();
         connections.push_back(std::move( ConnectionPair
                     ( std::move(ObjId(type_id<Subscriber>(),objId))
                     , std::move(connection))));
@@ -81,10 +88,7 @@ public:
         }
     }
 
-    //
-    // TODO: consider objId = 0, instead of removing
-    //      and garbage collect later
-    //
+
     template<typename Subscriber>
     void
         remove
@@ -98,14 +102,29 @@ public:
         connections.erase(eraseBegin, endIt);
     }
 
+
+private:
+    void preReserve()
+    {
+        size_t curReserve = _reserveAmt*_reserveTimes;
+        if(connections.size() >= curReserve)
+        {
+            connections.reserve(_reserveAmt*(++_reserveTimes)); // algebraic progression
+        }
+    }
+
+
 private:
      Connections connections;
+     size_t _reserveAmt;
+     size_t _reserveTimes;
 };
 } // namespace sig
 
 
 //
-// global - use void/etc for SUBSCRIBER type
+// global FUNC
+//      use void/etc for SUBSCRIBER type
 // for objects use lambda with capture
 // do not use OBJ_ID == 0, it may become special value in future
 //
