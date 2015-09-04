@@ -31,9 +31,9 @@ class SignalSender
 {
 public:
     static SignalSender<Event>&
-        getInstance()
+        getInstance(size_t reserveAmt = 1024)
     {
-        static SignalSender<Event> s_instance;
+        static SignalSender<Event> s_instance(reserveAmt);
         return s_instance;
     }
 
@@ -54,6 +54,10 @@ public:
         std::vector<ConnectionPair>
             Connections;
 
+    SignalSender(size_t reserveAmt)
+    {
+        connections.reserve(reserveAmt);
+    }
 
     template<typename Subscriber>
     void
