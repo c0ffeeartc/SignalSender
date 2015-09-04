@@ -74,9 +74,10 @@ public:
         signal
             (const Event& event)
     {
-        for (ConnectionPair& connection : connections)
+        size_t sz = connections.size();
+        for (size_t i=0; i< sz; ++i)
         {
-            connection.second(event);
+            connections[i].second(event);
         }
     }
 
