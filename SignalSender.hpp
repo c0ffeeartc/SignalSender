@@ -14,7 +14,7 @@ namespace sig
 //      holds vector<std::function, objId>
 //          connect() push_backs std::function
 //          signal() iterates over std::function(const Event&)
-//          remove() erases all matches to <classId: objId>
+//          disconnect() erases all matches to <classId: objId>
 //          objId requires
 //              Constructor(){static s_id=1; _id = s_id++;} // objId must be >0
 //              or similar for each Subscriber
@@ -23,8 +23,8 @@ namespace sig
 //
 //
 // May be used
-//      through singleton CONNECT, DISCONNECT, SIGNAL macros
-//      or through manually constructed objects
+//      through singleton sig::connect, sig::disconnect, sig::signal template functions
+//      or through manually constructed SignalSender objects
 //
 
 template <typename Event>
@@ -91,7 +91,7 @@ public:
 
     template<typename Subscriber>
     void
-        remove
+        disconnect
             (size_t objId)
     {
         ObjId removeId(type_id<Subscriber>(), objId);
@@ -119,7 +119,6 @@ private:
      size_t _reserveAmt;
      size_t _reserveTimes;
 };
-} // namespace sig
 
 
 //
@@ -128,20 +127,24 @@ private:
 // for objects use lambda with capture
 // do not use OBJ_ID == 0, it may become special value in future
 //
-#define CONNECT(EVENT, FUNC, SUBSCRIBER, OBJ_ID)\
-    sig::SignalSender<EVENT>::getInstance().connect<SUBSCRIBER>\
-        (sig::SignalSender<EVENT>::Connection(FUNC), OBJ_ID);
+template<typename EVENT, typename SUBSCRIBER>
+void connect(typename sig::SignalSender<EVENT>::Connection && func,size_t objId){
+    sig::SignalSender<EVENT>::getInstance().template connect<SUBSCRIBER>
+        (std::move(func), objId);
+}
 
 
 //
 // Must be called if previously called CONNECT
 //
-#define DISCONNECT(EVENT, SUBSCRIBER, OBJ_ID)\
-    sig::SignalSender<EVENT>::getInstance().remove<SUBSCRIBER>(OBJ_ID);
+template<typename EVENT, typename SUBSCRIBER>
+void disconnect(size_t objId){
+    sig::SignalSender<EVENT>::getInstance().template disconnect<SUBSCRIBER>(objId);
+}
 
+template<typename EVENT>
+void signal(EVENT &e){
+    sig::SignalSender<EVENT>::getInstance().signal(e);
+}
 
-#define SIGNAL(EVENT, EVENT_OBJ)\
-    sig::SignalSender<EVENT>::getInstance().signal(EVENT_OBJ)
-
-
-
+} // namespace sig
